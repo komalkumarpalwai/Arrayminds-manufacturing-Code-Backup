@@ -89,12 +89,12 @@
     <template if:true={selectedPricebookId}>
         <div class="products-header">
             <lightning-button
-                icon-name="utility:back"
                 label="Change Price Book"
                 onclick={handleBackToPricebooks}
                 variant="neutral"
                 class="back-button">
             </lightning-button>
+            <span class="selected-pricebook-name">{selectedPricebookName}</span>
         </div>
 
         <!-- PRODUCT SEARCH BAR -->
@@ -427,7 +427,7 @@
                                    onchange={handleDetailsQtyChange} />
                             <button class="qty-btn-plus" onclick={incrementQty}>+</button>
                         </div>
-                        <div class="available-text">Available: {selectedProduct.availableUnits} units</div>
+                        
                     </div>
 
                     <!-- Description -->

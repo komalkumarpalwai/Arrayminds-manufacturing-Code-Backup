@@ -18,6 +18,8 @@ const CURRENCY_FIELDS = [
 
 export default class ProductCartService extends NavigationMixin(LightningElement) {
     isLoading = false;
+    productSearchDebounceTimer;
+    pricebookSearchDebounceTimer;
 
 
     @api recordId;
@@ -112,20 +114,26 @@ export default class ProductCartService extends NavigationMixin(LightningElement
     }
 
     handlePricebookSearch(event) {
-        this.pricebookSearchTerm = event.target.value.toLowerCase();
+        clearTimeout(this.pricebookSearchDebounceTimer);
+        const searchTerm = event.target.value.toLowerCase();
+        
+        // Debounce the search to avoid excessive re-renders
+        this.pricebookSearchDebounceTimer = setTimeout(() => {
+            this.pricebookSearchTerm = searchTerm;
+        }, 300);
     }
 
     toggleAllPricebooks() {
         this.showAllPricebooks = !this.showAllPricebooks;
         
-        // Auto-scroll to all pricebooks section if opened
+        // Auto-scroll to all pricebooks section if opened with slow smooth timing
         if (this.showAllPricebooks) {
             setTimeout(() => {
                 const allPBSection = this.template.querySelector('.all-pricebooks-section');
                 if (allPBSection) {
                     allPBSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-            }, 100);
+            }, 300);
         }
     }
 
@@ -133,13 +141,20 @@ export default class ProductCartService extends NavigationMixin(LightningElement
         const pricebookId = event.currentTarget.dataset.pbid;
         this.selectedPricebookId = pricebookId;
         this.showAllPricebooks = false;
+        this.isLoading = true; // Set loading immediately for better UX
 
         updateParentPricebook({
             parentId: this.recordId,
             pricebookId: this.selectedPricebookId
         })
         .then(() => {
-            this.loadProducts();   // fetch products after update
+            // Pricebook updated successfully, now load products
+            this.loadProducts();
+        })
+        .catch(error => {
+            // Only log error, don't show toast for empty pricebooks
+            console.error('Error updating pricebook:', error);
+            this.isLoading = false;
         });
     }
 
@@ -157,21 +172,27 @@ export default class ProductCartService extends NavigationMixin(LightningElement
 
     /* PRODUCT SEARCH & FILTERING */
     handleProductSearch(event) {
-        this.productSearchTerm = event.target.value.toLowerCase();
-        this.currentPage = 1;
+        clearTimeout(this.productSearchDebounceTimer);
+        const searchTerm = event.target.value.toLowerCase();
+        
+        // Debounce the search to avoid excessive filtering
+        this.productSearchDebounceTimer = setTimeout(() => {
+            this.productSearchTerm = searchTerm;
+            this.currentPage = 1;
+        }, 300);
     }
 
     handleCategoryFilter(event) {
         this.selectedCategory = event.currentTarget.dataset.category;
         this.currentPage = 1;
         
-        // Auto-scroll to products section
+        // Auto-scroll to products section with smooth slow timing
         setTimeout(() => {
             const productsContainer = this.template.querySelector('.products-container');
             if (productsContainer) {
                 productsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-        }, 100);
+        }, 300);
     }
 
     getCategoryIcon(categoryName) {
@@ -342,6 +363,14 @@ export default class ProductCartService extends NavigationMixin(LightningElement
         return this.filteredAllPricebooks.length;
     }
 
+    get selectedPricebookName() {
+        if (!this.selectedPricebookId || !this.allPricebooksData) {
+            return '';
+        }
+        const pb = this.allPricebooksData.find(p => p.Id === this.selectedPricebookId);
+        return pb ? pb.Name : '';
+    }
+
     /* LOAD PRODUCTS */
     loadProducts() {
 
@@ -355,8 +384,36 @@ export default class ProductCartService extends NavigationMixin(LightningElement
             currencyIso: this.parentCurrency
         })
         .then(data => {
-            this.products = data.map(p => ({ ...p, qty: null }));
+            // Successfully loaded products (even if empty)
+            this.products = data && Array.isArray(data) ? data.map(p => ({ ...p, qty: null })) : [];
             this.filteredProducts = this.products;
+            
+            // Auto-scroll based on whether products are found
+            if (!data || data.length === 0) {
+                // No products found - scroll to "Change Price Book" button
+                setTimeout(() => {
+                    const productsHeader = this.template.querySelector('.products-header');
+                    if (productsHeader) {
+                        productsHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 300);
+            } else {
+                // Products found - scroll down to products grid (slower scroll)
+                setTimeout(() => {
+                    const productsGrid = this.template.querySelector('.products-grid');
+                    if (productsGrid) {
+                        productsGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 300);
+            }
+        })
+        .catch(error => {
+            // Only show error for actual Apex/network failures, not for zero products
+            console.error('Error loading products:', error);
+            // Only show toast if it's a real error (not just an empty result)
+            if (error && error.body && error.body.faultstring) {
+                this.showToast('Error', error.body.faultstring || 'Failed to load products. Please try again.', 'error');
+            }
         })
         .finally(()=>{
             this.isLoading = false;
