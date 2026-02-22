@@ -100,13 +100,26 @@
         <!-- PRODUCT SEARCH BAR -->
         <template if:true={showSearch}>
             <div class="product-search-section">
-                <lightning-input
-                    type="search"
-                    label="Search Products"
-                    placeholder="Search by product name, code, or brand..."
-                    onchange={handleProductSearch}
-                    class="product-search-input">
-                </lightning-input>
+                <div class="search-sort-container">
+                    <lightning-input
+                        type="search"
+                        label="Search Products"
+                        placeholder="Search by product name, code, or brand..."
+                        onchange={handleProductSearch}
+                        class="product-search-input">
+                    </lightning-input>
+                    
+                    <div class="sort-wrapper">
+                        <label class="sort-label">Sort By:</label>
+                        <select class="sort-dropdown" onchange={handleSort}>
+                            <option value="default">Default</option>
+                            <option value="price-low">Price: Low to High</option>
+                            <option value="price-high">Price: High to Low</option>
+                            <option value="name-asc">Name: A to Z</option>
+                            <option value="name-desc">Name: Z to A</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </template>
 
@@ -304,20 +317,24 @@
 
                 <template if:true={isSummaryMode}>
                     <div class="summary-container">
-                        <div class="success-tick">✔</div>
-                        <div class="slds-text-heading_small slds-m-top_small">
+                        <div class="success-icon-wrapper">
+                            <div class="success-tick">✔</div>
+                        </div>
+                        <div class="success-message">
                             Products added successfully
                         </div>
-                        <div class="slds-text-title_bold slds-m-top_x-small">
-                            Total: {totalAmount}
+                        <div class="total-display">
+                            <span class="total-label">Order Total</span>
+                            <span class="total-value">{totalAmount}</span>
                         </div>
 
-                        <div class="progress-wrapper slds-m-top_medium">
-                            <div class="progress-bar" style={progressStyle}></div>
-                        </div>
-
-                        <div class="slds-text-body_small slds-m-top_x-small">
-                            Closing in {countdown}s
+                        <div class="progress-section">
+                            <div class="progress-wrapper">
+                                <div class="progress-bar" style={progressStyle}></div>
+                            </div>
+                            <div class="countdown-timer">
+                                ⏱️ Closing in <span class="countdown-value">{countdown}</span>s
+                            </div>
                         </div>
                     </div>
                 </template>

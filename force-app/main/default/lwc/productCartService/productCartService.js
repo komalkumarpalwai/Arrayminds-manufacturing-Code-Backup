@@ -75,6 +75,7 @@ export default class ProductCartService extends NavigationMixin(LightningElement
     /* PRODUCT FILTERING & PAGINATION */
     productSearchTerm = '';
     selectedCategory = 'All Products';
+    sortOption = 'default';
     currentPage = 1;
     productsPerPage = 6;
 
@@ -195,6 +196,19 @@ export default class ProductCartService extends NavigationMixin(LightningElement
         }, 300);
     }
 
+    handleSort(event) {
+        this.sortOption = event.currentTarget.value;
+        this.currentPage = 1;
+
+        // Auto-scroll to products section with smooth slow timing
+        setTimeout(() => {
+            const productsContainer = this.template.querySelector('.products-container');
+            if (productsContainer) {
+                productsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 300);
+    }
+
     getCategoryIcon(categoryName) {
         const iconMap = {
             'Finished Good': '📦',
@@ -264,6 +278,17 @@ export default class ProductCartService extends NavigationMixin(LightningElement
                 p.productCode.toLowerCase().includes(this.productSearchTerm) ||
                 (p.Brand && p.Brand.toLowerCase().includes(this.productSearchTerm))
             );
+        }
+
+        // Apply sorting
+        if (this.sortOption === 'price-low') {
+            filtered = filtered.sort((a, b) => a.unitPrice - b.unitPrice);
+        } else if (this.sortOption === 'price-high') {
+            filtered = filtered.sort((a, b) => b.unitPrice - a.unitPrice);
+        } else if (this.sortOption === 'name-asc') {
+            filtered = filtered.sort((a, b) => a.name.localeCompare(b.name));
+        } else if (this.sortOption === 'name-desc') {
+            filtered = filtered.sort((a, b) => b.name.localeCompare(a.name));
         }
 
         return filtered;
