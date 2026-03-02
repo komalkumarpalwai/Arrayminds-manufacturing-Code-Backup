@@ -18,15 +18,15 @@ public with sharing class ProductCartService {
 public static List<Pricebook2> getPricebooks()
 {
     return [
-        SELECT Id, Name
+        SELECT Id, Name, IsStandard
         FROM Pricebook2
         WHERE IsActive = true
-        ORDER BY Name
+        ORDER BY IsStandard DESC, Name ASC
     ];
 }
 
 /* ===== PRODUCTS BASED ON PRICEBOOK + CURRENCY ===== */
-@AuraEnabled(cacheable=true)
+@AuraEnabled
 public static List<ProductDTO> getProductsByPricebook(
     Id pricebookId,
     String currencyIso

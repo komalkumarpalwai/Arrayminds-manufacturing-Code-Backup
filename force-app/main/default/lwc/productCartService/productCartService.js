@@ -26,10 +26,11 @@ export default class ProductCartService extends NavigationMixin(LightningElement
 
     @track pricebookOptions = [];
     @track allPricebooksData = [];
-    selectedPricebookId;
+    @track selectedPricebookId;
     parentCurrency;
     pricebookSearchTerm = '';
     showAllPricebooks = false;
+    hasInitialized = false;
 
     countdown = 3;
     progressWidth = 100;
@@ -37,6 +38,46 @@ export default class ProductCartService extends NavigationMixin(LightningElement
     @track products = [];
     @track filteredProducts = [];
     @track cart = [];
+
+    connectedCallback() {
+        // Will auto-init once both pricebooks and currency are loaded
+    }
+
+    autoInitStandardPricebook() {
+        if (this.hasInitialized) {
+            console.log('Already initialized, skipping auto-init');
+            return;
+        }
+        if (!this.allPricebooksData || !this.parentCurrency) {
+            console.log('Cannot auto-init yet', {
+                hasPricebooks: !!this.allPricebooksData,
+                hasCurrency: !!this.parentCurrency
+            });
+            return;
+        }
+        
+        console.log('Auto-initializing Standard pricebook...');
+        // Try to find pricebook marked as Standard (IsStandard = true)
+        let pbToSelect = this.allPricebooksData.find(p => p.IsStandard === true);
+        
+        // Fallback: if no IsStandard, look for name "Standard"
+        if (!pbToSelect) {
+            pbToSelect = this.allPricebooksData.find(p => p.Name === 'Standard');
+        }
+        
+        // Last resort: use first pricebook
+        if (!pbToSelect && this.allPricebooksData.length > 0) {
+            console.log('Standard pricebook not found, using first pricebook');
+            pbToSelect = this.allPricebooksData[0];
+        }
+        
+        if (pbToSelect) {
+            this.hasInitialized = true;
+            this.selectedPricebookId = pbToSelect.Id;
+            console.log('Selected pricebook:', pbToSelect.Name, 'ID:', pbToSelect.Id, 'IsStandard:', pbToSelect.IsStandard);
+            this.loadProducts();
+        }
+    }
 
     /* DETAILS MODAL */
     showDetailsModal = false;
@@ -96,9 +137,12 @@ export default class ProductCartService extends NavigationMixin(LightningElement
     wiredCurrency({ data }) {
         if (data) {
             this.parentCurrency = data.fields.CurrencyIsoCode.value;
-
+            console.log('Currency loaded:', this.parentCurrency);
+            this.autoInitStandardPricebook();
+            
             /* if pricebook already selected reload products */
             if (this.selectedPricebookId) {
+                console.log('Pricebook already selected, reloading products');
                 this.loadProducts();
             }
         }
@@ -108,9 +152,13 @@ export default class ProductCartService extends NavigationMixin(LightningElement
     @wire(getPricebooks)
     wiredPB({ data }) {
         if (data) {
+            console.log('Pricebooks loaded:', data);
             this.allPricebooksData = data;
             this.pricebookOptions =
                 data.map(p => ({ label: p.Name, value: p.Id }));
+            
+            // Try to auto-init Standard pricebook
+            this.autoInitStandardPricebook();
         }
     }
 
@@ -400,18 +448,25 @@ export default class ProductCartService extends NavigationMixin(LightningElement
     loadProducts() {
 
         if (!this.selectedPricebookId || !this.parentCurrency) {
+            console.warn('Cannot load products - Missing pricebookId or currency', {
+                pricebookId: this.selectedPricebookId,
+                currency: this.parentCurrency
+            });
             return;
         }
         this.isLoading = true;
+        console.log('Loading products for pricebook:', this.selectedPricebookId, 'currency:', this.parentCurrency);
 
         getProductsByPricebook({
             pricebookId: this.selectedPricebookId,
             currencyIso: this.parentCurrency
         })
         .then(data => {
+            console.log('Products fetched successfully:', data);
             // Successfully loaded products (even if empty)
             this.products = data && Array.isArray(data) ? data.map(p => ({ ...p, qty: null })) : [];
             this.filteredProducts = this.products;
+            console.log('Products state updated:', this.products.length);
             
             // Auto-scroll based on whether products are found
             if (!data || data.length === 0) {
@@ -435,6 +490,7 @@ export default class ProductCartService extends NavigationMixin(LightningElement
         .catch(error => {
             // Only show error for actual Apex/network failures, not for zero products
             console.error('Error loading products:', error);
+            console.error('Full error object:', JSON.stringify(error));
             // Only show toast if it's a real error (not just an empty result)
             if (error && error.body && error.body.faultstring) {
                 this.showToast('Error', error.body.faultstring || 'Failed to load products. Please try again.', 'error');
