@@ -56,20 +56,16 @@ export default class ProductCartService extends NavigationMixin(LightningElement
             return;
         }
         
-        console.log('Auto-initializing Standard pricebook...');
-        // Try to find pricebook marked as Standard (IsStandard = true)
-        let pbToSelect = this.allPricebooksData.find(p => p.IsStandard === true);
+        console.log('Auto-initializing AMERP Pricebook...');
+        // Try to find pricebook named AMERP Pricebook
+        let pbToSelect = this.allPricebooksData.find(p => p.Name === 'AMERP Pricebook');
         
-        // Fallback: if no IsStandard, look for name "Standard"
-        if (!pbToSelect) {
-            pbToSelect = this.allPricebooksData.find(p => p.Name === 'Standard');
-        }
-        
-        // Last resort: use first pricebook
+        // Fallback: use first pricebook if AMERP not found
         if (!pbToSelect && this.allPricebooksData.length > 0) {
-            console.log('Standard pricebook not found, using first pricebook');
             pbToSelect = this.allPricebooksData[0];
         }
+        
+
         
         if (pbToSelect) {
             this.hasInitialized = true;

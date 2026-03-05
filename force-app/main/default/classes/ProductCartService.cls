@@ -126,8 +126,8 @@ public static List<ProductDTO> getProductsByPricebook(
         Set<Id> productIds = new Set<Id>();
         for(Product2 p : products) productIds.add(p.Id);
 
-        /* ===== STANDARD PRICEBOOK ===== */
-        Id stdPb = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1].Id;
+        /* ===== AMERP PRICEBOOK ===== */
+        Id stdPb = [SELECT Id FROM Pricebook2 WHERE Name = 'AMERP Pricebook' LIMIT 1].Id;
 
         Map<Id, PricebookEntry> priceMap = new Map<Id, PricebookEntry>();
         for (PricebookEntry pbe : [
@@ -357,8 +357,8 @@ public static List<ProductDTO> getProductsByPricebook(
             parentCurrency = o.CurrencyIsoCode;
         }
 
-        /* ===== STANDARD PRICEBOOK ===== */
-        Id stdPbId = [SELECT Id FROM Pricebook2 WHERE IsStandard=true LIMIT 1].Id;
+        /* ===== AMERP PRICEBOOK (DEFAULT) ===== */
+        Id stdPbId = [SELECT Id FROM Pricebook2 WHERE Name = 'AMERP Pricebook' LIMIT 1].Id;
 
         /* ===== COLLECT PRODUCTS ===== */
         Set<Id> productIds = new Set<Id>();
